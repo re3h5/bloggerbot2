@@ -1,23 +1,25 @@
 # AI Blogger Bot
 
-An intelligent automation tool that generates and publishes engaging blog posts to your Blogger site. It fetches trending topics (with focus on Bangladesh), uses AI to create high-quality content, and automatically categorizes posts with appropriate labels.
+An intelligent automation tool that generates and publishes engaging blog posts to your Blogger site. It fetches trending topics (including cryptocurrency trends), uses AI to create high-quality content with proper thumbnail images, and automatically categorizes posts with appropriate labels.
 
-An automated blogging system that fetches trending topics, generates engaging blog posts using AI, and publishes them to your Blogger site with appropriate labels.
+This automated blogging system combines trending topic discovery, AI-powered content generation, and image integration to create professional-looking blog posts with minimal human intervention.
 
 > **IMPORTANT SECURITY NOTE**: This repository does not contain any sensitive API keys or credentials. You will need to create your own credential files based on the example files provided. See the [Security and Credentials](#security-and-credentials) section for details.
 
 ## Features
 
 - 🔍 Fetches trending topics using Google Trends API with AI fallback
-- 📰 Creates engaging, clickable headlines using AI
+- 💰 Includes cryptocurrency trends (BTC, ETH) in topic discovery
+- 📰 Creates engaging, clickable headlines using AI (without quotation marks)
 - 🤖 Generates high-quality blog posts using OpenRouter AI
-- 🖼️ Automatically generates relevant images for each post with multiple fallback sources
+- 🖼️ Automatically generates relevant images with proper thumbnails for Blogger
+- 🔄 Multi-tiered image fetching with Pixabay, Pexels, and placeholder fallbacks
 - 📝 Posts automatically to Blogger with smart label classification
-- ⏰ Runs on a schedule (every 6 hours by default)
-- 🏷️ Smart label classification system
-- 📊 Comprehensive logging with Unicode emoji support
+- 🏷️ Smart label classification system for better content organization
+- 📊 Comprehensive logging with Unicode emoji support (Windows-compatible)
 - ⚠️ Robust error handling with API rate limiting and retries
 - 🔄 Automatic OAuth token refreshing
+- 🧹 Clean project structure with proper organization
 
 ## Prerequisites
 
@@ -74,12 +76,12 @@ Replace:
 1. Run the authentication script:
 
 ```bash
-python get_token.py
+python src/get_token.py
 ```
 
 2. Follow the browser prompts to authenticate
 3. Allow the application access to your Blogger account
-4. The script will generate `token.json`
+4. The script will generate `config/token.json`
 
 ## Usage
 
@@ -180,7 +182,58 @@ The bot includes robust error handling for:
 
 It will automatically retry operations and log any issues.
 
+## Project Structure
+
+```
+bloggerbot2/
+├── .env                  # Environment variables
+├── .gitignore            # Git ignore file
+├── README.md             # Documentation
+├── main.py               # Main entry point
+├── config/               # Configuration files
+│   ├── credentials.json  # OAuth credentials
+│   └── token.json        # OAuth token
+├── images/               # Generated images (gitignored)
+├── logs/                 # Log files
+└── src/                  # Source code
+    ├── blogger_bot.py    # Main bot class
+    ├── get_token.py      # Token generation script
+    ├── services/         # Service modules
+    │   ├── blogger_service.py
+    │   ├── content_generator.py
+    │   ├── image_service.py
+    │   └── trending_topics.py
+    └── utils/            # Utility modules
+        ├── config.py     # Configuration
+        ├── logger.py     # Logging setup
+        ├── rate_limiter.py
+        └── token_manager.py  # Token management
+```
+
 ## Recent Improvements
+
+### Thumbnail Support
+- Added proper thumbnail image support for Blogger posts
+- Implemented image embedding in post content for automatic thumbnail extraction
+- Enhanced ImageService to return both local image path and original image URL
+- Improved image handling in BloggerService for better thumbnail display
+
+### Content Cleanup
+- Added headline cleanup to remove quotation marks from AI-generated headlines
+- Implemented content cleanup to remove unwanted HTML artifacts like standalone 'html' words
+- Removed code block markers and excessive whitespace from generated content
+- Improved AI prompts to explicitly prevent inclusion of unwanted formatting
+
+### Trending Topics Enhancement
+- Added cryptocurrency-related categories (cryptocurrency, BTC, ETH) to Google Trends
+- Improved trending topic discovery with more diverse categories
+- Suppressed pandas FutureWarning from pytrends library
+
+### Project Organization
+- Reorganized project structure for better maintainability
+- Moved token generation functionality to src/utils/token_manager.py
+- Created a dedicated src/get_token.py script for token generation
+- Removed duplicate configuration files
 
 ### API Rate Limiting
 - Added a RateLimiter utility to track and enforce API call limits
@@ -193,14 +246,10 @@ It will automatically retry operations and log any issues.
 - Improved token validation with test API calls
 - Enhanced error messages for authentication issues
 
-### Content Generation
-- Fixed headline integration in blog post content
-- Improved error handling in AI content generation
-- Added fallback mechanisms for headline generation
-
 ### Image Service
 - Enhanced multi-tiered image fetching with multiple fallback sources
 - Fixed image path handling and integration with blog posts
+- Added support for landscape-oriented images
 
 ### Logging
 - Fixed Unicode emoji support in Windows console logging
@@ -236,9 +285,13 @@ Logs are written to `blogger_bot.log` with UTF-8 encoding. The log includes:
 
 ## Troubleshooting
 
-1. **Authentication Failed**: Run `get_token.py` again to refresh OAuth token
+1. **Authentication Failed**: Run `python src/get_token.py` to refresh your OAuth token
 2. **API Rate Limits**: Check the logs and adjust posting frequency if needed
 3. **Content Generation Issues**: Verify OpenRouter API key and connectivity
+4. **Unicode Logging Errors**: The logger now handles emojis properly on Windows
+5. **Unwanted Quotation Marks in Titles**: Fixed with headline cleanup
+6. **HTML Artifacts in Content**: Fixed with content cleanup
+7. **Missing Thumbnails**: Ensure images are properly embedded in the post content
 
 ## License
 
