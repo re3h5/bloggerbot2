@@ -53,7 +53,7 @@ class BloggerBot:
             # Check if Blogger service is initialized properly
             if not self.blogger_service.service:
                 logging.error("❌ Blogger service not initialized properly. Check your credentials and token.")
-                print("❌ Blogger service not initialized. Run 'python get_token.py' to refresh your token.")
+                print("❌ Blogger service not initialized. Run 'python src/get_token.py' to refresh your token.")
                 return False
             
             # Post to Blogger
@@ -70,7 +70,7 @@ class BloggerBot:
                 # Provide more helpful error information
                 print("   Possible issues:")
                 print("   1. API rate limit reached - wait a while before trying again")
-                print("   2. Token expired - run 'python get_token.py' to refresh")
+                print("   2. Token expired - run 'python src/get_token.py' to refresh")
                 print("   3. Permission issues - check your OAuth scopes and Blogger ID")
                 return False
                 
