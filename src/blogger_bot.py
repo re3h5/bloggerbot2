@@ -7,6 +7,7 @@ from src.services.trending_topics import TrendingTopicsService
 from src.services.content_generator import ContentGeneratorService
 from src.services.image_service import ImageService
 from src.services.blogger_service import BloggerService
+from src.services.monetization import MonetizationService
 from src.utils.logger import setup_logger
 
 class BloggerBot:
@@ -24,6 +25,7 @@ class BloggerBot:
         self.content_service = ContentGeneratorService()
         self.image_service = ImageService()
         self.blogger_service = BloggerService()
+        self.monetization_service = MonetizationService()
         
         logging.info("🤖 Starting Blogger Bot")
     
@@ -42,6 +44,11 @@ class BloggerBot:
             content = self.content_service.generate_blog_post(topic, headline)
             content_length = len(content)
             logging.info(f"📝 Generated blog post content of length: {content_length} characters")
+            
+            # Add monetization elements (ads, affiliate links, email signup)
+            content = self.monetization_service.add_monetization_elements(content, topic)
+            content = self.monetization_service.optimize_for_adsense(content)
+            logging.info(f"💰 Added monetization elements to content")
             
             # Get image for the blog post
             image_result = self.image_service.generate_image(topic)
