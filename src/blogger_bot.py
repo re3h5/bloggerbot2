@@ -44,8 +44,11 @@ class BloggerBot:
             logging.info(f"📝 Generated blog post content of length: {content_length} characters")
             
             # Get image for the blog post
-            image_path = self.image_service.generate_image(topic)
-            logging.info(f"🖼️ Successfully fetched image for topic: {topic}")
+            image_result = self.image_service.generate_image(topic)
+            if image_result:
+                logging.info(f"🖼️ Successfully fetched image for topic: {topic}")
+            else:
+                logging.warning(f"⚠️ Could not fetch image for topic: {topic}")
             
             # Check if Blogger service is initialized properly
             if not self.blogger_service.service:
@@ -55,7 +58,7 @@ class BloggerBot:
             
             # Post to Blogger
             logging.info(f"[POSTING] Posting to Blogger...")
-            post_url = self.blogger_service.post_to_blogger(headline, content, image_path)
+            post_url = self.blogger_service.post_to_blogger(headline, content, image_result)
             
             if post_url:
                 logging.info(f"✅ Successfully published blog post: {post_url}")

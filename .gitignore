@@ -50,3 +50,11 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated Images
+images/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp

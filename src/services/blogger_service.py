@@ -72,7 +72,7 @@ class BloggerService:
             logging.error(f"Error loading token: {str(e)}")
             return None
     
-    def post_to_blogger(self, title, content, image_path=None, max_retries=3):
+    def post_to_blogger(self, title, content, image_result=None, max_retries=3):
         """
         Post content to Blogger.
         Returns the URL of the published post or None if posting failed.
@@ -101,17 +101,38 @@ class BloggerService:
         if meta_description:
             clean_content = f'<div style="display:none;">{meta_description}</div>\n{clean_content}'
         
-        # Add image to the content if available
+        # Add image to content if provided
+        image_path = None
+        image_url = None
+        
+        if image_result:
+            if isinstance(image_result, dict):
+                image_path = image_result.get('path')
+                image_url = image_result.get('url')
+            else:
+                # For backward compatibility
+                image_path = image_result
+        
+        # Embed image in content if local path is available
         if image_path and os.path.exists(image_path):
             try:
-                with open(image_path, "rb") as img_file:
-                    img_data = base64.b64encode(img_file.read()).decode('utf-8')
-                img_html = (
-                    f'<div class="featured-image" style="max-width:100%;overflow:hidden;">'
-                    f'<img src="data:image/jpeg;base64,{img_data}" alt="{post_title}" '
-                    f'style="width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;">'
-                    f'</div>\n\n'
-                )
+                if image_url:
+                    img_html = (
+                        f'<div class="featured-image" style="max-width:100%;overflow:hidden;">'
+                        f'<img src="{image_url}" alt="{post_title}" '
+                        f'style="width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;">'
+                        f'</div>\n\n'
+                    )
+                else:
+                    with open(image_path, 'rb') as img_file:
+                        img_data = base64.b64encode(img_file.read()).decode('utf-8')
+                    
+                    img_html = (
+                        f'<div class="featured-image" style="max-width:100%;overflow:hidden;">'
+                        f'<img src="data:image/jpeg;base64,{img_data}" alt="{post_title}" '
+                        f'style="width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;">'
+                        f'</div>\n\n'
+                    )
                 clean_content = img_html + clean_content
             except Exception as e:
                 logging.error(f"Error embedding image: {str(e)}")

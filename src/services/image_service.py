@@ -21,36 +21,36 @@ class ImageService:
     def generate_image(self, topic, max_retries=3):
         """
         Generate or fetch an image for the given topic.
-        Returns the path to the saved image.
+        Returns a dictionary with 'path' (local file path) and 'url' (original image URL).
         """
         # Try multiple image sources with fallbacks
-        image_path = None
+        image_result = None
         
         # Method 1: Try Pixabay API if API key is available
         if PIXABAY_API_KEY:
             try:
-                image_path = self._get_pixabay_image(topic)
-                if image_path:
+                image_result = self._get_pixabay_image(topic)
+                if image_result:
                     logging.info(f"Successfully fetched image from Pixabay for topic: {topic}")
-                    return image_path
+                    return image_result
             except Exception as e:
                 logging.warning(f"Error fetching image from Pixabay: {str(e)}")
         
         # Method 2: Try Pexels API (no API key required)
         try:
-            image_path = self._get_pexels_image(topic)
-            if image_path:
+            image_result = self._get_pexels_image(topic)
+            if image_result:
                 logging.info(f"Successfully fetched image from Pexels for topic: {topic}")
-                return image_path
+                return image_result
         except Exception as e:
             logging.warning(f"Error fetching image from Pexels: {str(e)}")
         
         # Method 3: Use placeholder image as final fallback
         try:
-            image_path = self._get_placeholder_image(topic)
-            if image_path:
+            image_result = self._get_placeholder_image(topic)
+            if image_result:
                 logging.info(f"Using placeholder image for topic: {topic}")
-                return image_path
+                return image_result
         except Exception as e:
             logging.warning(f"Error creating placeholder image: {str(e)}")
         
@@ -82,7 +82,8 @@ class ImageService:
             with open(image_path, 'wb') as f:
                 f.write(image_response.content)
             
-            return image_path
+            # Return both the local path and the original URL
+            return {'path': image_path, 'url': image_url}
         
         return None
     
@@ -116,7 +117,8 @@ class ImageService:
             with open(image_path, 'wb') as f:
                 f.write(image_response.content)
             
-            return image_path
+            # Return both the local path and the original URL
+            return {'path': image_path, 'url': image_url}
         
         return None
     
@@ -130,9 +132,9 @@ class ImageService:
         text_color = "333333"
         text = quote(f"Blog Image: {topic}")
         
-        url = f"https://via.placeholder.com/{width}x{height}/{bg_color}/{text_color}?text={text}"
+        image_url = f"https://via.placeholder.com/{width}x{height}/{bg_color}/{text_color}?text={text}"
         
-        response = requests.get(url)
+        response = requests.get(image_url)
         response.raise_for_status()
         
         # Create a filename based on the topic and timestamp
@@ -142,4 +144,5 @@ class ImageService:
         with open(image_path, 'wb') as f:
             f.write(response.content)
         
-        return image_path
+        # Return both the local path and the original URL
+        return {'path': image_path, 'url': image_url}
