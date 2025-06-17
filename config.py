@@ -9,6 +9,10 @@ load_dotenv()
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 if not OPENROUTER_API_KEY:
     raise ValueError("OPENROUTER_API_KEY environment variable is not set")
+    
+# Pixabay API Configuration (for images)
+PIXABAY_API_KEY = os.getenv('PIXABAY_API_KEY')
+# We'll make this optional, so the bot can still run without images if needed
 
 # Blogger Configuration
 BLOGGER_TOKEN_PATH = os.path.join('config', 'token.json')

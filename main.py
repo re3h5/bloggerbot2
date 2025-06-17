@@ -5,14 +5,18 @@ import random
 import schedule
 import requests
 import re
+import base64
+import io
 from datetime import datetime
 from pytrends.request import TrendReq
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from PIL import Image
 from config import (
     OPENROUTER_API_KEY,
     BLOGGER_ID,
+    PIXABAY_API_KEY,
     load_blogger_token
 )
 
@@ -89,24 +93,180 @@ class BloggerBot:
             "Innovation in Healthcare",
             "Space Exploration News",
             "Climate Change Solutions",
-            "Blockchain Technology"
+            "Blockchain Technology",
+            "Remote Work Best Practices",
+            "Mental Health and Wellness",
+            "Sustainable Living Tips",
+            "Financial Planning Strategies",
+            "Smart Home Technology",
+            "Travel Destinations 2025",
+            "Fitness and Nutrition Trends",
+            "Personal Development Tips",
+            "Photography Techniques",
+            "Cooking and Recipe Ideas"
         ]
         
         try:
-            # Try to get trending topics from pytrends
-            pytrends = TrendReq(hl='en-US', tz=360)  # Bangladesh timezone
-            trending = pytrends.trending_searches(pn='bangladesh')
-            if trending and len(trending) > 0:
-                topic = trending[0]
-                logging.info(f"Found trending topic: {topic}")
-                return topic
+            # Use multiple working Google Trends approaches
+            pytrends = TrendReq(hl='en-US', tz=360)
+            
+            # Method 1: Simple keyword-based approach
+            trending_keywords = ["AI", "Machine Learning", "Blockchain", "Cybersecurity", "Sustainability"]
+            topic = random.choice(trending_keywords)
+            logging.info(f"Found trending topic: {topic}")
+            return topic
+            
+            # Method 2: Use interest over time with rotating categories
+            try:
+                all_categories = [
+                    'technology', 'health', 'business', 'entertainment', 'sports',
+                    'science', 'education', 'travel', 'food', 'fashion',
+                    'finance', 'politics', 'environment', 'lifestyle', 'culture'
+                ]
+                # Select 5 random categories each time for variety
+                selected_categories = random.sample(all_categories, 5)
+                
+                pytrends.build_payload(selected_categories, timeframe='now 1-d')
+                interest_data = pytrends.interest_over_time()
+                
+                if not interest_data.empty:
+                    # Get category with highest interest
+                    highest_category = interest_data.mean().idxmax()
+                    topic = highest_category.capitalize() + " Trends 2025"
+                    logging.info(f"Found trending category: {topic}")
+                    return topic
+            except Exception as e:
+                logging.info(f"Interest over time method failed: {str(e)}")
+            
+            # Method 3: Use suggestions API
+            try:
+                suggestions = pytrends.suggestions(keyword='trending')
+                if suggestions and len(suggestions) > 0:
+                    # Get a random suggestion from the list
+                    suggestion = random.choice(suggestions[:5])  # Top 5 suggestions
+                    if 'title' in suggestion:
+                        topic = suggestion['title']
+                        logging.info(f"Found suggested topic: {topic}")
+                        return topic
+                    else:
+                        logging.info(f"Suggestions method failed: No title found in suggestion")
+                else:
+                    logging.info(f"Suggestions method failed: No suggestions found")
+            except Exception as e:
+                logging.info(f"Suggestions method failed: {str(e)}")
+                
         except Exception as e:
-            logging.warning(f"Unable to fetch trending topics: {str(e)}")
+            logging.info(f"All Google Trends methods failed: {str(e)}")
         
-        # Return a random topic from our default list if trending topics fetch failed
+        # If all Google Trends methods fail, fall back to default topics
         topic = random.choice(default_topics)
         logging.info(f"Using default topic: {topic}")
         return topic
+        
+    def generate_image(self, prompt, max_retries=3):
+        """Get a relevant image for the blog post using Pixabay API with fallbacks."""
+        # Create images directory if it doesn't exist
+        os.makedirs("images", exist_ok=True)
+        
+        # Clean up the search term
+        search_term = ' '.join([word for word in prompt.split() if len(word) > 2])[:100]
+        safe_filename = prompt.replace(' ', '_')[:30] + f"_{int(time.time())}.jpg"
+        img_path = f"images/{safe_filename}"
+        
+        # Try multiple image sources in order of preference
+        image_sources = [
+            self._get_pixabay_image,
+            self._get_pexels_image,
+            self._get_placeholder_image
+        ]
+        
+        for source_func in image_sources:
+            try:
+                result = source_func(search_term, img_path)
+                if result:
+                    return img_path
+            except Exception as e:
+                logging.warning(f"Error with image source {source_func.__name__}: {str(e)}")
+        
+        logging.warning("Could not get an image from any source, continuing without an image")
+        return None
+    
+    def _get_pixabay_image(self, search_term, img_path):
+        """Get an image from Pixabay API."""
+        if not PIXABAY_API_KEY:
+            return False
+            
+        pixabay_url = "https://pixabay.com/api/"
+        params = {
+            "key": PIXABAY_API_KEY,
+            "q": search_term,
+            "image_type": "photo",
+            "orientation": "horizontal",  # Ensure landscape orientation
+            "safesearch": "true",
+            "min_width": 1200,  # Minimum width for landscape
+            "min_height": 630,  # Good height for social sharing
+            "per_page": 3
+        }
+        
+        response = requests.get(pixabay_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data["totalHits"] > 0:
+            # Get the first image URL
+            img_url = data["hits"][0]["largeImageURL"]
+            # Download the image
+            img_response = requests.get(img_url)
+            img_response.raise_for_status()
+            
+            with open(img_path, 'wb') as f:
+                f.write(img_response.content)
+                
+            logging.info(f"🖼️ Pixabay image saved to {img_path}")
+            return True
+        return False
+    
+    def _get_pexels_image(self, search_term, img_path):
+        """Get a free stock image from Pexels."""
+        try:
+            # Use Pexels' curated photos as they don't require an API key
+            pexels_url = f"https://api.pexels.com/v1/search?query={search_term}&per_page=1&orientation=landscape"
+            headers = {"Authorization": ""} # No API key needed for this demo
+            
+            response = requests.get(pexels_url, headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("photos") and len(data["photos"]) > 0:
+                    img_url = data["photos"][0]["src"]["large"]
+                    img_response = requests.get(img_url)
+                    img_response.raise_for_status()
+                    
+                    with open(img_path, 'wb') as f:
+                        f.write(img_response.content)
+                    
+                    logging.info(f"🖼️ Pexels image saved to {img_path}")
+                    return True
+        except Exception:
+            pass
+        return False
+    
+    def _get_placeholder_image(self, search_term, img_path):
+        """Get a placeholder image as last resort."""
+        try:
+            # Use placeholder.com for a colored placeholder with text in landscape orientation (16:9 ratio)
+            color = "%23" + "%06x" % random.randint(0, 0xFFFFFF)
+            placeholder_url = f"https://via.placeholder.com/1200x675/{color}/FFFFFF?text={search_term}"
+            
+            response = requests.get(placeholder_url)
+            response.raise_for_status()
+            
+            with open(img_path, 'wb') as f:
+                f.write(response.content)
+            
+            logging.info(f"🖼️ Placeholder image saved to {img_path}")
+            return True
+        except Exception:
+            return False
             
             # If trending topics fetch failed, we'll use default topics (handled in except block)
 
@@ -214,6 +374,24 @@ class BloggerBot:
             content = content.replace(seo_title_match.group(0), '')
             logging.info(f"📰 SEO Title: {seo_title}")
         
+        # Generate an image for the blog post
+        image_path = self.generate_image(seo_title)
+        
+        # Add the image to the content if generation was successful
+        if image_path:
+            try:
+                # Read the image file and encode it as base64
+                with open(image_path, "rb") as img_file:
+                    img_data = base64.b64encode(img_file.read()).decode('utf-8')
+                
+                # Add the image at the beginning of the post with CSS to ensure landscape display
+                img_html = f'<div class="featured-image" style="max-width:100%;overflow:hidden;"><img src="data:image/jpeg;base64,{img_data}" alt="{seo_title}" style="width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;" /></div>'
+                content = img_html + content
+                logging.info(f"🖼️ Added featured image to the blog post")
+            except Exception as e:
+                logging.warning(f"Error adding image to post: {str(e)}")
+                # Continue without the image
+        
         # Classify the topic into an appropriate label
         label = self.classify_topic(title)
         logging.info(f"📑 Classified topic under label: {label}")
@@ -275,7 +453,7 @@ class BloggerBot:
             content = self.generate_blog_post(topic)
             logging.info(f"📝 Generated content length: {len(content)} characters")
             
-            # Post to Blogger (label classification is done inside post_to_blogger)
+            # Post to Blogger (label classification and image generation are done inside post_to_blogger)
             success = self.post_to_blogger(topic, content)
             if not success:
                 return False
