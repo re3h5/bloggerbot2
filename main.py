@@ -110,13 +110,7 @@ class BloggerBot:
             # Use multiple working Google Trends approaches
             pytrends = TrendReq(hl='en-US', tz=360)
             
-            # Method 1: Simple keyword-based approach
-            trending_keywords = ["AI", "Machine Learning", "Blockchain", "Cybersecurity", "Sustainability"]
-            topic = random.choice(trending_keywords)
-            logging.info(f"Found trending topic: {topic}")
-            return topic
-            
-            # Method 2: Use interest over time with rotating categories
+            # Method 1: Try Google Trends interest over time with rotating categories
             try:
                 all_categories = [
                     'technology', 'health', 'business', 'entertainment', 'sports',
@@ -133,12 +127,12 @@ class BloggerBot:
                     # Get category with highest interest
                     highest_category = interest_data.mean().idxmax()
                     topic = highest_category.capitalize() + " Trends 2025"
-                    logging.info(f"Found trending category: {topic}")
+                    logging.info(f"Found trending category from Google Trends: {topic}")
                     return topic
             except Exception as e:
-                logging.info(f"Interest over time method failed: {str(e)}")
+                logging.info(f"Google Trends interest_over_time method failed: {str(e)}")
             
-            # Method 3: Use suggestions API
+            # Method 2: Try Google Trends suggestions API
             try:
                 suggestions = pytrends.suggestions(keyword='trending')
                 if suggestions and len(suggestions) > 0:
@@ -146,19 +140,19 @@ class BloggerBot:
                     suggestion = random.choice(suggestions[:5])  # Top 5 suggestions
                     if 'title' in suggestion:
                         topic = suggestion['title']
-                        logging.info(f"Found suggested topic: {topic}")
+                        logging.info(f"Found suggested topic from Google Trends: {topic}")
                         return topic
                     else:
-                        logging.info(f"Suggestions method failed: No title found in suggestion")
+                        logging.info(f"Google Trends suggestions method failed: No title found in suggestion")
                 else:
-                    logging.info(f"Suggestions method failed: No suggestions found")
+                    logging.info(f"Google Trends suggestions method failed: No suggestions found")
             except Exception as e:
-                logging.info(f"Suggestions method failed: {str(e)}")
+                logging.info(f"Google Trends suggestions method failed: {str(e)}")
                 
         except Exception as e:
             logging.info(f"All Google Trends methods failed: {str(e)}")
         
-        # Try AI-generated trending topic before falling back to defaults
+        # Method 3: Try AI-generated trending topic as second fallback
         try:
             ai_topic = self.get_ai_trending_topic()
             if ai_topic:
@@ -167,7 +161,16 @@ class BloggerBot:
         except Exception as e:
             logging.info(f"AI trending topic generation failed: {str(e)}")
         
-        # If all methods fail, fall back to default topics
+        # Method 4: Use curated tech keywords as third fallback
+        try:
+            trending_keywords = ["AI", "Machine Learning", "Blockchain", "Cybersecurity", "Sustainability"]
+            topic = random.choice(trending_keywords)
+            logging.info(f"Using curated tech topic: {topic}")
+            return topic
+        except Exception as e:
+            logging.info(f"Curated tech topics method failed: {str(e)}")
+        
+        # Method 5: If all else fails, fall back to default topics
         topic = random.choice(default_topics)
         logging.info(f"Using default topic: {topic}")
         return topic
@@ -220,7 +223,7 @@ class BloggerBot:
                 if response_data and "choices" in response_data and len(response_data["choices"]) > 0:
                     topic = response_data["choices"][0]["message"]["content"].strip()
                     # Clean up the topic (remove quotes, periods, etc.)
-                    topic = topic.strip('"\'\.\n')
+                    topic = topic.strip('"\'\n.')  # Fix invalid escape sequence
                     return topic
                 
             except Exception as e:
