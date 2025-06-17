@@ -96,7 +96,9 @@ def get_blogger_token():
                     port=port, 
                     redirect_uri_trailing_slash=False, 
                     host='localhost',
-                    authorization_prompt_message="Please authorize the Blogger Bot to access your Blogger account"
+                    authorization_prompt_message="Please authorize the Blogger Bot to access your Blogger account",
+                    access_type='offline',
+                    prompt='consent'
                 )
 
                 # Parse the creds into dict to inspect & enrich

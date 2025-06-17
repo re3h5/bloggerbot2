@@ -38,7 +38,9 @@ def setup_logger():
                     '🎉': '[CELEBRATION]',
                     '❌': '[ERROR]',
                     '⚠️': '[WARNING]',
-                    '🔑': '[KEY]'
+                    '🔑': '[KEY]',
+                    '👤': '[USER]',
+                    '✔': '[CHECK]'
                 }
                 for emoji, replacement in emoji_replacements.items():
                     result = result.replace(emoji, replacement)
