@@ -49,6 +49,8 @@ class ContentGeneratorService:
             f"9. Write short paragraphs (3-4 sentences max) for better readability\n"
             f"10. Include a conclusion with a call to action\n"
             f"11. Format with semantic HTML tags for better SEO and readability\n"
+            f"12. Do NOT include any code blocks, backticks, or the word 'html' in the content\n"
+            f"13. Return only the clean blog post content without any extra formatting markers\n"
         )
 
         for attempt in range(max_retries):
@@ -74,6 +76,21 @@ class ContentGeneratorService:
                 
                 if response_data and "choices" in response_data and len(response_data["choices"]) > 0:
                     content = response_data["choices"][0]["message"]["content"]
+                    
+                    # Clean up the content - remove unwanted HTML artifacts
+                    import re
+                    
+                    # Remove standalone "html" words that might appear
+                    content = re.sub(r'\b\.?html\b', '', content, flags=re.IGNORECASE)
+                    
+                    # Remove any stray backticks or code block markers
+                    content = re.sub(r'```html?', '', content, flags=re.IGNORECASE)
+                    content = re.sub(r'```', '', content)
+                    
+                    # Clean up excessive whitespace
+                    content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
+                    content = content.strip()
+                    
                     logging.info(f"Successfully generated content of length: {len(content)}")
                     return content
                 else:
