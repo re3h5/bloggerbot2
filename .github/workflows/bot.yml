@@ -27,15 +27,16 @@ jobs:
 
       - name: Create credentials file
         run: |
-          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > config/credentials.json
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > config/credentials.json
+
+      - name: Create token file directly
+        run: |
+          echo '${{ secrets.BLOGGER_TOKEN }}' > config/token.json
 
       - name: Create .env file
         run: |
-          echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+          echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" > .env
           echo "BLOGGER_ID=${{ secrets.BLOGGER_ID }}" >> .env
-
-      - name: Generate token
-        run: python get_token.py
 
       - name: Run blogger bot
         run: python main.py
