@@ -8,13 +8,14 @@ An automated blogging system that fetches trending topics, generates engaging bl
 
 ## Features
 
-- 🔍 Fetches trending topics (with focus on Bangladesh trends)
+- 🔍 Fetches trending topics using Google Trends API
 - 🤖 Generates high-quality blog posts using OpenRouter AI
+- 🖼️ Automatically generates relevant images for each post
 - 📝 Posts automatically to Blogger with smart label classification
 - ⏰ Runs on a schedule (every 6 hours by default)
 - 🏷️ Smart label classification system
 - 📊 Comprehensive logging
-- ⚠️ Error handling and retries
+- ⚠️ Error handling and retries with multiple fallback mechanisms
 
 ## Prerequisites
 
@@ -57,12 +58,14 @@ Create a `.env` file in the project root with the following content:
 ```env
 OPENROUTER_API_KEY=your_openrouter_api_key
 BLOGGER_ID=your_blogger_id
+PIXABAY_API_KEY=your_pixabay_api_key  # Optional, for better images
 ```
 
 Replace:
 
 - `your_openrouter_api_key` with your OpenRouter API key
 - `your_blogger_id` with your Blogger blog ID (find it in your Blogger URL or settings)
+- `your_pixabay_api_key` with your Pixabay API key (optional, get a free key at [Pixabay API](https://pixabay.com/api/docs/))
 
 ### 5. Generate Google OAuth Token
 
@@ -91,6 +94,27 @@ The bot will:
 1. Start immediately with one post
 2. Continue running on a schedule (every 6 hours)
 3. Log all activities to `blogger_bot.log`
+
+## Image Generation
+
+The bot automatically generates relevant images for each blog post using multiple sources:
+
+1. **Pixabay API** (Primary Source)
+   - Requires a free Pixabay API key in your `.env` file
+   - Fetches high-quality, royalty-free images related to the blog topic
+   - Configured to return landscape-oriented images for better blog display
+
+2. **Pexels API** (Fallback)
+   - Used automatically if Pixabay fails or no API key is provided
+   - No API key required for basic usage
+   - Also configured for landscape orientation
+
+3. **Placeholder Images** (Final Fallback)
+   - Generated if both Pixabay and Pexels fail
+   - Creates a simple placeholder image with the topic name
+   - Maintains 16:9 aspect ratio (1200x675)
+
+All images are embedded directly in the blog post with responsive CSS styling to maintain proper display across devices.
 
 ### Available Labels
 
