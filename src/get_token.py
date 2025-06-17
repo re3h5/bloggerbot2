@@ -3,8 +3,15 @@ Script to obtain or refresh OAuth token for Blogger API.
 Run this script to authenticate with Google and get a new token.
 """
 import logging
-from src.utils.logger import setup_logger
-from src.utils.token_manager import get_blogger_token
+import sys
+import os
+
+# Add the project root directory to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Now we can import our modules
+from utils.logger import setup_logger
+from utils.token_manager import get_blogger_token
 
 def main():
     # Setup logger
