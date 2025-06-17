@@ -2,7 +2,7 @@ name: Blogger Auto Bot
 
 on:
   schedule:
-    - cron: "0 */1 * * *" # Run every hour
+    - cron: "0 */6 * * *" # Run every 6 hours
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -22,8 +22,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create config directory
-        run: mkdir -p config
+      - name: Create directories
+        run: |
+          mkdir -p config
+          mkdir -p logs
+          mkdir -p images
 
       - name: Create credentials file
         run: |
@@ -37,6 +40,12 @@ jobs:
         run: |
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" > .env
           echo "BLOGGER_ID=${{ secrets.BLOGGER_ID }}" >> .env
+          # Only add Pixabay API key if it exists in secrets
+          if [ -n "$PIXABAY_API_KEY" ]; then
+            echo "PIXABAY_API_KEY=$PIXABAY_API_KEY" >> .env
+          fi
+        env:
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY || '' }}
 
       - name: Run blogger bot
         run: python main.py
