@@ -8,7 +8,8 @@ An automated blogging system that fetches trending topics, generates engaging bl
 
 ## Features
 
-- 🔍 Fetches trending topics using Google Trends API
+- 🔍 Fetches trending topics using Google Trends API with AI fallback
+- 📰 Creates engaging, clickable headlines using AI
 - 🤖 Generates high-quality blog posts using OpenRouter AI
 - 🖼️ Automatically generates relevant images for each post
 - 📝 Posts automatically to Blogger with smart label classification
@@ -94,6 +95,35 @@ The bot will:
 1. Start immediately with one post
 2. Continue running on a schedule (every 6 hours)
 3. Log all activities to `blogger_bot.log`
+
+## AI-Powered Content Generation
+
+### Trending Topic Discovery
+
+The bot uses a multi-tiered approach to discover trending topics:
+
+1. **Google Trends API** (Primary Source)
+   - Attempts multiple methods to fetch real trending topics
+   - Uses interest_over_time and suggestions APIs
+   - Rotates through different categories for variety
+
+2. **AI Trend Forecasting** (Smart Fallback)
+   - When Google Trends fails, the bot asks AI to suggest trending topics
+   - Uses GPT to identify currently popular or emerging topics
+   - Ensures topics are specific enough for engaging content
+
+3. **Curated Default Topics** (Final Fallback)
+   - If all else fails, selects from a list of evergreen topics
+   - Topics are carefully selected to be relevant across time periods
+
+### Engaging Headlines
+
+The bot generates clickable, SEO-optimized headlines:
+
+- Uses AI to craft headlines that grab attention while maintaining accuracy
+- Ensures headlines include the main topic keyword
+- Optimizes length for SEO (under 60 characters)
+- Uses power words and creates curiosity to improve click-through rates
 
 ## Image Generation
 

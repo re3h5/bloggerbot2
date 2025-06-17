@@ -158,10 +158,78 @@ class BloggerBot:
         except Exception as e:
             logging.info(f"All Google Trends methods failed: {str(e)}")
         
-        # If all Google Trends methods fail, fall back to default topics
+        # Try AI-generated trending topic before falling back to defaults
+        try:
+            ai_topic = self.get_ai_trending_topic()
+            if ai_topic:
+                logging.info(f"Using AI-suggested trending topic: {ai_topic}")
+                return ai_topic
+        except Exception as e:
+            logging.info(f"AI trending topic generation failed: {str(e)}")
+        
+        # If all methods fail, fall back to default topics
         topic = random.choice(default_topics)
         logging.info(f"Using default topic: {topic}")
         return topic
+        
+    def get_ai_trending_topic(self, max_retries=2):
+        """Get trending topic suggestions from AI when Google Trends fails."""
+        system_message = (
+            "You are a trend forecasting expert with deep knowledge of current global trends. "
+            "Your job is to suggest a single trending topic that would make for an engaging blog post. "
+            "Focus on topics that are currently popular or emerging in technology, culture, business, "
+            "health, or lifestyle."
+        )
+        
+        prompt = (
+            "Suggest ONE trending topic for a blog post today. \n\n"
+            "Requirements:\n"
+            "1. The topic should be currently trending or emerging\n"
+            "2. It should be specific enough to write about (not too broad)\n"
+            "3. It should be interesting to a general audience\n"
+            "4. Return ONLY the topic name with no additional text, quotes, or formatting\n"
+            "5. Keep it under 5 words if possible"
+        )
+
+        for attempt in range(max_retries):
+            try:
+                headers = {
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/blog-bot",
+                }
+                
+                payload = {
+                    "model": "openai/gpt-3.5-turbo",
+                    "messages": [
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 50
+                }
+                
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload
+                )
+                
+                response.raise_for_status()
+                response_data = response.json()
+                
+                if response_data and "choices" in response_data and len(response_data["choices"]) > 0:
+                    topic = response_data["choices"][0]["message"]["content"].strip()
+                    # Clean up the topic (remove quotes, periods, etc.)
+                    topic = topic.strip('"\'\.\n')
+                    return topic
+                
+            except Exception as e:
+                logging.warning(f"Error getting AI trending topic (attempt {attempt + 1}): {str(e)}")
+                if attempt == max_retries - 1:
+                    return None
+                time.sleep(2)
+        
+        return None
         
     def generate_image(self, prompt, max_retries=3):
         """Get a relevant image for the blog post using Pixabay API with fallbacks."""
@@ -445,16 +513,80 @@ class BloggerBot:
                 logging.warning(f"Error posting to Blogger (attempt {attempt + 1}): {str(e)}")
                 time.sleep(5)
 
+    def generate_headline(self, topic, max_retries=3):
+        """Generate an engaging, clickable headline for the blog post."""
+        system_message = (
+            "You are a professional headline writer for viral content. Create engaging, "
+            "clickable headlines that grab attention while maintaining accuracy. "
+            "Your headlines should be SEO-friendly and compelling."
+        )
+        
+        prompt = (
+            f"Create an engaging, clickable headline about: {topic}\n\n"
+            f"Requirements:\n"
+            f"1. Make it compelling and attention-grabbing\n"
+            f"2. Keep it under 60 characters for SEO\n"
+            f"3. Include the main keyword: {topic}\n"
+            f"4. Use power words that evoke emotion\n"
+            f"5. Create curiosity or promise value\n"
+            f"6. Return ONLY the headline text with no quotes or formatting"
+        )
+
+        for attempt in range(max_retries):
+            try:
+                headers = {
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/blog-bot",
+                }
+                
+                payload = {
+                    "model": "openai/gpt-3.5-turbo",
+                    "messages": [
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 100
+                }
+                
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload
+                )
+                
+                response.raise_for_status()
+                response_data = response.json()
+                
+                if response_data and "choices" in response_data and len(response_data["choices"]) > 0:
+                    headline = response_data["choices"][0]["message"]["content"].strip()
+                    logging.info(f"✨ Generated headline: {headline}")
+                    return headline
+                else:
+                    logging.warning(f"Invalid response format from API (attempt {attempt + 1})")
+            except Exception as e:
+                logging.warning(f"Error generating headline (attempt {attempt + 1}): {str(e)}")
+                if attempt == max_retries - 1:
+                    logging.error(f"Failed to generate headline after {max_retries} attempts")
+                    return f"Latest Insights on {topic}"  # Fallback headline
+                time.sleep(2)
+        
+        return f"Latest Insights on {topic}"  # Fallback headline if all attempts fail
+    
     def run(self):
         try:
             topic = self.get_trending_topic()
             logging.info(f"🧠 Trending topic: {topic}")
             
+            # Generate an engaging headline first
+            headline = self.generate_headline(topic)
+            logging.info(f"📰 Using headline: {headline}")
+            
             content = self.generate_blog_post(topic)
             logging.info(f"📝 Generated content length: {len(content)} characters")
             
             # Post to Blogger (label classification and image generation are done inside post_to_blogger)
-            success = self.post_to_blogger(topic, content)
+            success = self.post_to_blogger(headline, content)
             if not success:
                 return False
                 
