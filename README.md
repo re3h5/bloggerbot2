@@ -11,12 +11,13 @@ An automated blogging system that fetches trending topics, generates engaging bl
 - 🔍 Fetches trending topics using Google Trends API with AI fallback
 - 📰 Creates engaging, clickable headlines using AI
 - 🤖 Generates high-quality blog posts using OpenRouter AI
-- 🖼️ Automatically generates relevant images for each post
+- 🖼️ Automatically generates relevant images for each post with multiple fallback sources
 - 📝 Posts automatically to Blogger with smart label classification
 - ⏰ Runs on a schedule (every 6 hours by default)
 - 🏷️ Smart label classification system
-- 📊 Comprehensive logging
-- ⚠️ Error handling and retries with multiple fallback mechanisms
+- 📊 Comprehensive logging with Unicode emoji support
+- ⚠️ Robust error handling with API rate limiting and retries
+- 🔄 Automatic OAuth token refreshing
 
 ## Prerequisites
 
@@ -171,12 +172,40 @@ Check the `blogger_bot.log` file for:
 
 The bot includes robust error handling for:
 
-- API rate limits
-- Network issues
-- Authentication problems
-- Content generation failures
+- API rate limits with progressive backoff
+- Network issues with automatic retries
+- Authentication problems with token refreshing
+- Content generation failures with fallback mechanisms
+- Permission issues with detailed error messages
 
 It will automatically retry operations and log any issues.
+
+## Recent Improvements
+
+### API Rate Limiting
+- Added a RateLimiter utility to track and enforce API call limits
+- Implemented daily and per-minute rate limiting to prevent quota exhaustion
+- Added progressive backoff for HTTP 429 (Too Many Requests) errors
+
+### OAuth Authentication
+- Fixed OAuth scopes to use only the required `https://www.googleapis.com/auth/blogger` scope
+- Added automatic token refreshing when tokens expire
+- Improved token validation with test API calls
+- Enhanced error messages for authentication issues
+
+### Content Generation
+- Fixed headline integration in blog post content
+- Improved error handling in AI content generation
+- Added fallback mechanisms for headline generation
+
+### Image Service
+- Enhanced multi-tiered image fetching with multiple fallback sources
+- Fixed image path handling and integration with blog posts
+
+### Logging
+- Fixed Unicode emoji support in Windows console logging
+- Added more detailed error messages and suggestions
+- Improved logging around API calls and responses
 
 ## Customization
 
