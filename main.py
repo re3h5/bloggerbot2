@@ -4,6 +4,7 @@ import time
 import random
 import schedule
 import requests
+import re
 from datetime import datetime
 from pytrends.request import TrendReq
 from google.oauth2.credentials import Credentials
@@ -111,21 +112,26 @@ class BloggerBot:
 
     def generate_blog_post(self, topic, max_retries=3):
         system_message = (
-            "You are a professional blog writer. Write engaging, well-researched, "
-            "and informative content. Use a conversational yet professional tone. "
-            "Format the content with proper HTML tags for better presentation."
+            "You are a professional blog writer and SEO expert. Write engaging, well-researched, "
+            "and informative content that is optimized for search engines. Use a conversational "
+            "yet professional tone. Format the content with proper HTML tags for better presentation "
+            "and SEO optimization."
         )
         
         prompt = (
-            f"Write an engaging and informative blog post about: {topic}\n\n"
+            f"Write an engaging and SEO-optimized blog post about: {topic}\n\n"
             f"Requirements:\n"
-            f"1. Around 500 words\n"
-            f"2. Include a brief introduction that hooks the reader\n"
-            f"3. Provide relevant details, examples, and analysis\n"
-            f"4. End with a strong conclusion\n"
-            f"5. Use proper HTML formatting (<h2> for headings, <p> for paragraphs)\n"
-            f"6. Include SEO-friendly headings\n"
-            f"7. Write in a clear, engaging style"
+            f"1. Around 800-1000 words for better SEO performance\n"
+            f"2. Include a compelling meta description (150-160 characters) at the very top as: <meta-description>Your description here</meta-description>\n"
+            f"3. Include 5 relevant keywords/phrases for the topic as: <keywords>keyword1, keyword2, keyword3, keyword4, keyword5</keywords>\n"
+            f"4. Include an SEO-optimized title (different from the main topic) as: <seo-title>Your SEO Title Here</seo-title>\n"
+            f"5. Include a brief introduction that hooks the reader\n"
+            f"6. Use proper heading hierarchy (h2, h3) with keywords in headings\n"
+            f"7. Include at least one bulleted or numbered list\n"
+            f"8. Use 2-3 subheadings (h2) with the main keyword included naturally\n"
+            f"9. Write short paragraphs (3-4 sentences max) for better readability\n"
+            f"10. Include a conclusion with a call to action\n"
+            f"11. Format with semantic HTML tags for better SEO and readability\n"
         )
 
         headers = {
@@ -181,21 +187,61 @@ class BloggerBot:
         if not self.token_data:
             raise ValueError("Blogger token not found. Please run get_token.py first.")
 
+        # Extract SEO elements from content
+        meta_description = ""
+        keywords = []
+        seo_title = title
+        
+        # Extract meta description
+        meta_desc_match = re.search(r'<meta-description>(.*?)</meta-description>', content)
+        if meta_desc_match:
+            meta_description = meta_desc_match.group(1).strip()
+            content = content.replace(meta_desc_match.group(0), '')
+            logging.info(f"📊 Meta Description: {meta_description}")
+        
+        # Extract keywords
+        keywords_match = re.search(r'<keywords>(.*?)</keywords>', content)
+        if keywords_match:
+            keywords_text = keywords_match.group(1).strip()
+            keywords = [k.strip() for k in keywords_text.split(',')]
+            content = content.replace(keywords_match.group(0), '')
+            logging.info(f"🔑 Keywords: {', '.join(keywords)}")
+        
+        # Extract SEO title
+        seo_title_match = re.search(r'<seo-title>(.*?)</seo-title>', content)
+        if seo_title_match:
+            seo_title = seo_title_match.group(1).strip()
+            content = content.replace(seo_title_match.group(0), '')
+            logging.info(f"📰 SEO Title: {seo_title}")
+        
         # Classify the topic into an appropriate label
         label = self.classify_topic(title)
         logging.info(f"📑 Classified topic under label: {label}")
+        
+        # Add all keywords as labels for better categorization
+        all_labels = [label] + keywords
+        # Remove duplicates and ensure they're all strings
+        all_labels = list(set([str(lbl) for lbl in all_labels]))
 
         for attempt in range(max_retries):
             try:
                 creds = Credentials.from_authorized_user_info(self.token_data)
                 service = build('blogger', 'v3', credentials=creds)
                 
+                # Create post with SEO elements
                 post = {
                     "kind": "blogger#post",
-                    "title": title,
+                    "title": seo_title,  # Use SEO-optimized title
                     "content": content,
-                    "labels": [label]  # Use the classified label
+                    "labels": all_labels  # Use all labels including keywords
                 }
+                
+                # Add meta description if available
+                if meta_description:
+                    # Blogger API doesn't directly support meta descriptions,
+                    # but we can add it as a custom field or in the content
+                    meta_html = f'<div style="display:none"><meta name="description" content="{meta_description}"></div>'
+                    post["content"] = meta_html + post["content"]
                 
                 result = service.posts().insert(
                     blogId=self.blog_id,
@@ -203,7 +249,7 @@ class BloggerBot:
                     isDraft=False
                 ).execute()
                 
-                logging.info(f"✅ Posted: {title}")
+                logging.info(f"✅ Posted: {seo_title}")
                 logging.info(f"Post URL: {result.get('url', 'URL not available')}")
                 return True
                 
