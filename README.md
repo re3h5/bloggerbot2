@@ -404,6 +404,111 @@ Check the "Actions" tab to:
 - Monitor for any errors
 - Verify successful posts
 
+## Recent Updates 
+
+### Version 2.1 - OAuth & Token Management Improvements
+- **🔧 Fixed OAuth Authentication**: Resolved redirect URI mismatch errors and port conflicts
+- **🔑 Enhanced Token Generation**: Improved token manager with automatic process management and port handling
+- **🖥️ Windows Compatibility**: Fixed Unicode emoji logging issues on Windows systems
+- **🔄 Refresh Token Support**: Added proper refresh token handling with offline access
+- **🛠️ Better Error Handling**: Enhanced error messages and troubleshooting guidance
+- **📱 Multi-Port Support**: Automatic port detection and conflict resolution for OAuth redirect
+- **🎯 Web Client Support**: Full compatibility with both desktop and web application OAuth clients
+
+### Key Features
+- **🤖 AI-Powered Content Generation**: Uses OpenRouter API for high-quality blog content
+- **📈 Trending Topics**: Automatically fetches trending topics from Google Trends
+- **🖼️ Smart Image Integration**: Multi-source image fetching with automatic thumbnail support
+- **📝 Content Cleanup**: Advanced content and headline cleanup for professional posts
+- **🔐 Secure Authentication**: OAuth 2.0 with proper token management and refresh handling
+- **⚡ Automated Posting**: Scheduled posting via GitHub Actions
+- **📊 Rate Limit Management**: Built-in API rate limiting and quota management
+
+## Quick Start 
+
+### 1. Clone and Setup
+```bash
+git clone <your-repo-url>
+cd bloggerbot2
+pip install -r requirements.txt
+```
+
+### 2. Configure Environment
+```bash
+cp .env.example .env
+# Edit .env with your API keys
+```
+
+### 3. Setup Google OAuth
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable the Blogger API v3
+4. Create OAuth 2.0 credentials (Web Application or Desktop Application)
+5. Add `http://localhost:8080` to authorized redirect URIs
+6. Download credentials as `config/credentials.json`
+
+### 4. Generate OAuth Token
+```bash
+python src/get_token.py
+```
+**Important**: If you get "No refresh_token found" warning:
+1. Go to https://myaccount.google.com/permissions
+2. Remove access for your BloggerBot app
+3. Run the token generation again for a fresh consent flow
+
+### 5. Run the Bot
+```bash
+python main.py
+```
+
+## Troubleshooting 
+
+### OAuth Issues
+- **Error 400: redirect_uri_mismatch**
+  - Ensure `http://localhost:8080` is added to your OAuth client's authorized redirect URIs
+  - Check that your `credentials.json` file is properly configured
+
+- **Port 8080 already in use**
+  - The bot automatically handles port conflicts and finds available ports
+  - If issues persist, close applications using port 8080 or restart your system
+
+- **No refresh_token found**
+  - Revoke app permissions at https://myaccount.google.com/permissions
+  - Run `python src/get_token.py` again for fresh consent
+  - This ensures you get a refresh token for long-term operation
+
+### Token Issues
+- **"Authorized user info was not in the expected format"**
+  - Delete `config/token.json` and regenerate with `python src/get_token.py`
+  - Ensure you completed the full OAuth consent flow
+
+- **Authentication failed: Invalid credentials**
+  - Check your `BLOGGER_ID` in the `.env` file
+  - Verify your blog is accessible and you have admin permissions
+  - Regenerate token if it's expired
+
+### Content Generation Issues
+- **Unicode logging errors on Windows**
+  - Fixed in latest version with Windows-safe emoji logging
+  - Emojis are automatically converted to text equivalents
+
+- **Missing thumbnails in posts**
+  - Ensure `PIXABAY_API_KEY` is set in `.env` (optional but recommended)
+  - Images are embedded in content for automatic thumbnail extraction
+
+- **Rate limiting errors**
+  - Built-in rate limiting prevents API quota exhaustion
+  - Check `rate_limits/blogger_api_calls.json` for current usage
+
+### GitHub Actions Issues
+- **Workflow fails with missing secrets**
+  - Add all required secrets: `GOOGLE_CREDENTIALS`, `BLOGGER_TOKEN`, `OPENROUTER_API_KEY`, `BLOGGER_ID`
+  - `PIXABAY_API_KEY` is optional but recommended
+
+- **Token expires in GitHub Actions**
+  - Refresh tokens are automatically handled
+  - If issues persist, regenerate and update `BLOGGER_TOKEN` secret
+
 ## Security and Credentials
 
 ### Sensitive Files
