@@ -130,6 +130,10 @@ class ContentGeneratorService:
                 
                 if response_data and "choices" in response_data and len(response_data["choices"]) > 0:
                     headline = response_data["choices"][0]["message"]["content"].strip()
+                    
+                    # Clean up the headline - remove quotation marks and other unwanted formatting
+                    headline = headline.strip('"').strip("'").strip()
+                    
                     logging.info(f"✨ Generated headline: {headline}")
                     return headline
                 else:

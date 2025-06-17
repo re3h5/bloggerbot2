@@ -5,8 +5,13 @@ import random
 import logging
 import requests
 import time
+import pandas as pd
+import warnings
 from pytrends.request import TrendReq
 from src.utils.config import OPENROUTER_API_KEY
+
+# Suppress pandas FutureWarning from pytrends
+warnings.filterwarnings('ignore', category=FutureWarning, module='pytrends')
 
 class TrendingTopicsService:
     """Service for fetching trending topics from various sources."""
@@ -41,7 +46,8 @@ class TrendingTopicsService:
                 all_categories = [
                     'technology', 'health', 'business', 'entertainment', 'sports',
                     'science', 'education', 'travel', 'food', 'fashion',
-                    'finance', 'politics', 'environment', 'lifestyle', 'culture'
+                    'finance', 'politics', 'environment', 'lifestyle', 'culture',
+                    'cryptocurrency', 'btc', 'eth'
                 ]
                 # Select 5 random categories each time for variety
                 selected_categories = random.sample(all_categories, 5)

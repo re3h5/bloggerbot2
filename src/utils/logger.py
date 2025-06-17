@@ -28,6 +28,7 @@ def setup_logger():
                     '🧠': '[BRAIN]',
                     '📊': '[STATS]',
                     '✏️': '[WRITING]',
+                    '✍️': '[WRITING]',
                     '✨': '[SPARKLES]',
                     '📝': '[CONTENT]',
                     '✅': '[SUCCESS]',
