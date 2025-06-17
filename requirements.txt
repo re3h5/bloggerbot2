@@ -1,0 +1,9 @@
+openai>=1.0.0
+pytrends
+google-api-python-client
+google-auth
+google-auth-oauthlib
+python-dotenv
+requests
+logging
+schedule
