@@ -38,7 +38,7 @@ jobs:
         run: python get_token.py
 
       - name: Run blogger bot
-        run: python -m src.main
+        run: python main.py
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           BLOGGER_ID: ${{ secrets.BLOGGER_ID }}
