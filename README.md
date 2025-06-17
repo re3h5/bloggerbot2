@@ -215,6 +215,25 @@ The bot can run automatically using GitHub Actions. To set this up:
      2. The ID is in your blog's URL or settings
    - Format: A long number like `1234567890123456789`
 
+4. `BLOGGER_TOKEN`
+   - Content: Your pre-generated Blogger API token
+   - How to get:
+     1. Run the `get_token.py` script locally on your machine
+     2. After authentication completes, find the generated token at `config/token.json`
+     3. Copy the entire contents of this file
+   - Example format:
+     ```json
+     {
+       "token": "ya29.a0AfB_...",
+       "refresh_token": "1//0gGm...",
+       "token_uri": "https://oauth2.googleapis.com/token",
+       "client_id": "your-client-id.apps.googleusercontent.com",
+       "client_secret": "your-client-secret",
+       "scopes": ["https://www.googleapis.com/auth/blogger"],
+       "expiry": "2025-06-17T20:54:02.886Z"
+     }
+     ```
+
 ### Workflow Schedule
 
 The bot is configured to run every hour by default. You can modify this in `.github/workflows/bot.yml`:
