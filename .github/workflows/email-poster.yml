@@ -1,0 +1,61 @@
+name: BloggerBot Email Poster
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Runs every 6 hours
+  workflow_dispatch:  # Allows manual triggering
+    inputs:
+      force_run:
+        description: 'Force run ignoring schedule'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  post-blog:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create .env file
+      env:
+        GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}
+        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        GMAIL_SENDER_NAME: ${{ secrets.GMAIL_SENDER_NAME }}
+        EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+        EMAIL_BCC: ${{ secrets.EMAIL_BCC }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+      run: |
+        echo "GMAIL_EMAIL=${GMAIL_EMAIL}" >> .env
+        echo "GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}" >> .env
+        echo "GMAIL_SENDER_NAME=${GMAIL_SENDER_NAME}" >> .env
+        echo "EMAIL_RECIPIENTS=${EMAIL_RECIPIENTS}" >> .env
+        echo "EMAIL_BCC=${EMAIL_BCC}" >> .env
+        echo "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" >> .env
+        echo "PIXABAY_API_KEY=${PIXABAY_API_KEY}" >> .env
+
+    - name: Run BloggerBot
+      run: python bot_manager.py forcerun
+
+    - name: Upload logs as artifacts
+      if: always()  # Upload logs even if the job fails
+      uses: actions/upload-artifact@v3
+      with:
+        name: blogger-bot-logs
+        path: |
+          logs/
+          *.log

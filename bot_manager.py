@@ -56,8 +56,9 @@ def run_bot(force=False):
     try:
         bot = BloggerBot()
         if force:
-            # Temporarily override the scheduler to allow posting
+            # Temporarily override the scheduler and behavior settings to force posting
             bot.scheduler.posting_history = []  # Clear history to allow immediate posting
+            bot.scheduler.force_post = True  # Add this flag to skip random delays
         success = bot.run()
         
         if success:

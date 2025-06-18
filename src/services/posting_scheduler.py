@@ -15,6 +15,7 @@ class PostingScheduler:
     def __init__(self, config_file: str = "config/posting_schedule.json"):
         self.config_file = config_file
         self.posting_history = self._load_posting_history()
+        self.force_post = False  # Add force_post flag
         
         # Human-like posting patterns
         self.min_delay_between_posts = 3600  # 1 hour minimum
@@ -53,6 +54,10 @@ class PostingScheduler:
         Check if it's appropriate to post now based on human-like patterns.
         Returns (can_post, reason)
         """
+        # If force_post is True, always allow posting
+        if self.force_post:
+            return True, "Force posting enabled"
+            
         now = datetime.now()
         
         # Check if we've posted too recently
@@ -120,10 +125,11 @@ class PostingScheduler:
     
     def add_human_like_delay(self):
         """Add a random delay to simulate human behavior."""
-        # Random delay between 30 seconds to 5 minutes
-        delay = random.uniform(30, 300)
-        logging.info(f"[DELAY] Adding human-like delay: {delay:.1f} seconds")
-        time.sleep(delay)
+        if not self.force_post:  # Skip delay if force_post is True
+            # Random delay between 30 seconds to 5 minutes
+            delay = random.uniform(30, 300)
+            logging.info(f"[DELAY] Adding human-like delay: {delay:.1f} seconds")
+            time.sleep(delay)
     
     def record_post(self, topic: str, success: bool, post_url: Optional[str] = None):
         """Record a posting attempt in the history."""
