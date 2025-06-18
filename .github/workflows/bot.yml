@@ -24,6 +24,10 @@ on:
         - 'moderate'
         - 'active'
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   blog-post:
     runs-on: ubuntu-latest
@@ -123,16 +127,25 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add config/posting_schedule.json config/content_diversity.json
-        git diff --staged --quiet || git commit -m "Update posting history and diversity data [skip ci]"
+        git add config/posting_schedule.json config/content_diversity.json || true
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update posting history and diversity data [skip ci]"
+        fi
         
     - name: Push changes
       if: always()
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
-
+      run: |
+        if git diff --quiet HEAD~1 HEAD 2>/dev/null || git log --oneline -1 | grep -q "Update posting history"; then
+          echo "Pushing changes to repository..."
+          git push origin ${{ github.ref_name }}
+        else
+          echo "No changes to push"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
   # Optional: Health check job that runs more frequently
   health-check:
     runs-on: ubuntu-latest
