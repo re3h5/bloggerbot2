@@ -1,0 +1,275 @@
+name: Email Bot - Automated Email Sending
+
+on:
+  schedule:
+    # Run every 2 hours to check if we should send emails
+    - cron: '0 */2 * * *'
+  
+  workflow_dispatch:
+    inputs:
+      force_send:
+        description: 'Force send (ignore posting schedule)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      
+      posting_pattern:
+        description: 'Posting pattern to use'
+        required: false
+        default: 'moderate'
+        type: choice
+        options:
+          - 'conservative'
+          - 'moderate'
+          - 'active'
+      
+      max_emails:
+        description: 'Maximum number of emails to send'
+        required: false
+        default: '1'
+        type: string
+      
+      email_type:
+        description: 'Email type/template'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - 'auto'
+          - 'newsletter'
+          - 'blog_post'
+          - 'digest'
+          - 'announcement'
+      
+      use_gmail_api:
+        description: 'Use Gmail API instead of SMTP'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  email-bot:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create config directory
+      run: |
+        mkdir -p config
+        
+    - name: Setup Gmail credentials (SMTP)
+      run: |
+        echo "Setting up Gmail SMTP credentials..."
+        # Gmail credentials will be provided via environment variables
+      env:
+        GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}
+        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        GMAIL_SENDER_NAME: ${{ secrets.GMAIL_SENDER_NAME }}
+        EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+        EMAIL_BCC: ${{ secrets.EMAIL_BCC }}
+        
+    - name: Setup Gmail API credentials (if using API)
+      if: github.event.inputs.use_gmail_api == 'true'
+      run: |
+        echo "Setting up Gmail API credentials..."
+        echo '${{ secrets.GMAIL_API_CREDENTIALS }}' > config/gmail_credentials.json
+        
+    - name: Setup OpenRouter API
+      run: |
+        echo "Setting up content generation API..."
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        
+    - name: Show Email Bot status
+      run: |
+        echo "📧 Email Bot Status Check"
+        echo "========================"
+        python email_bot_manager.py status ${{ github.event.inputs.use_gmail_api == 'true' && '--api' || '' }}
+        
+    - name: Set posting pattern
+      if: github.event.inputs.posting_pattern != ''
+      run: |
+        echo "🎯 Setting posting pattern to: ${{ github.event.inputs.posting_pattern }}"
+        python email_bot_manager.py pattern ${{ github.event.inputs.posting_pattern }}
+        
+    - name: Run Email Bot (Scheduled)
+      if: github.event_name == 'schedule'
+      run: |
+        echo "⏰ Running scheduled email check..."
+        python email_bot_manager.py run \
+          --pattern moderate \
+          --max-emails 1 \
+          ${{ secrets.EMAIL_RECIPIENTS && format('--recipients {0}', secrets.EMAIL_RECIPIENTS) || '' }}
+      env:
+        GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}
+        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        GMAIL_SENDER_NAME: ${{ secrets.GMAIL_SENDER_NAME }}
+        EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+        EMAIL_BCC: ${{ secrets.EMAIL_BCC }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        
+    - name: Run Email Bot (Manual)
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "🚀 Running manual email bot..."
+        
+        # Build command
+        CMD="python email_bot_manager.py"
+        
+        # Force run or regular run
+        if [ "${{ github.event.inputs.force_send }}" = "true" ]; then
+          CMD="$CMD forcerun"
+        else
+          CMD="$CMD run"
+        fi
+        
+        # Add pattern if specified
+        if [ "${{ github.event.inputs.posting_pattern }}" != "" ]; then
+          CMD="$CMD --pattern ${{ github.event.inputs.posting_pattern }}"
+        fi
+        
+        # Add max emails
+        if [ "${{ github.event.inputs.max_emails }}" != "" ]; then
+          CMD="$CMD --max-emails ${{ github.event.inputs.max_emails }}"
+        fi
+        
+        # Add email type if not auto
+        if [ "${{ github.event.inputs.email_type }}" != "auto" ]; then
+          CMD="$CMD --type ${{ github.event.inputs.email_type }}"
+        fi
+        
+        # Add recipients if available
+        if [ "${{ secrets.EMAIL_RECIPIENTS }}" != "" ]; then
+          CMD="$CMD --recipients ${{ secrets.EMAIL_RECIPIENTS }}"
+        fi
+        
+        # Add API flag if using Gmail API
+        if [ "${{ github.event.inputs.use_gmail_api }}" = "true" ]; then
+          CMD="$CMD --api"
+        fi
+        
+        echo "Executing: $CMD"
+        eval $CMD
+      env:
+        GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}
+        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        GMAIL_SENDER_NAME: ${{ secrets.GMAIL_SENDER_NAME }}
+        EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+        EMAIL_BCC: ${{ secrets.EMAIL_BCC }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        
+    - name: Show email sending statistics
+      if: always()
+      run: |
+        echo "📊 Email Bot Statistics"
+        echo "======================"
+        python email_bot_manager.py history
+        echo ""
+        echo "🎯 Content Diversity Report"
+        echo "=========================="
+        python email_bot_manager.py diversity
+        
+    - name: Upload logs as artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: email-bot-logs-${{ github.run_number }}
+        path: |
+          *.log
+          config/posting_schedule.json
+          config/content_diversity.json
+          config/email_config.json
+        retention-days: 7
+        
+    - name: Save config files as artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: email-bot-config-${{ github.run_number }}
+        path: |
+          config/posting_schedule.json
+          config/content_diversity.json
+          config/email_config.json
+        retention-days: 30
+        
+    - name: Show final status
+      if: always()
+      run: |
+        echo "📧 Email Bot run completed!"
+        echo "📊 Final Statistics:"
+        python email_bot_manager.py status ${{ github.event.inputs.use_gmail_api == 'true' && '--api' || '' }}
+        echo ""
+        echo "💾 Config files saved as artifacts for persistence"
+        echo "📋 Check the Actions tab to download logs and config files"
+        
+  # Optional: Health check job for monitoring
+  health-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create config directory
+      run: mkdir -p config
+        
+    - name: Health check
+      run: |
+        echo "🏥 Email Bot Health Check"
+        echo "========================"
+        echo "⏰ Current time: $(date)"
+        echo "🔍 Checking bot status..."
+        
+        python email_bot_manager.py status || echo "❌ Status check failed"
+        
+        echo ""
+        echo "📅 Recent email history:"
+        python email_bot_manager.py history || echo "❌ History check failed"
+        
+        echo ""
+        echo "✅ Health check completed"
+      env:
+        GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}
+        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
