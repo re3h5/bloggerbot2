@@ -2,60 +2,112 @@ name: BloggerBot Email Poster
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Runs every 6 hours
-  workflow_dispatch:  # Allows manual triggering
+    # Following moderate pattern (4-8 hours between posts)
+    # Random minutes to add human-like variation
+    - cron: "30 9 * * 1-5" # 9:30 AM UTC (First post window)
+    - cron: "15 13 * * 1-5" # 1:15 PM UTC (Second post window, ~4h gap)
+    - cron: "45 16 * * 1-5" # 4:45 PM UTC (Third post window, ~3.5h gap)
+    # Weekend schedule (reduced frequency)
+    - cron: "30 10 * * 0,6" # 10:30 AM UTC (Weekend morning)
+    - cron: "15 15 * * 0,6" # 3:15 PM UTC (Weekend afternoon)
+  workflow_dispatch: # Allows manual triggering
     inputs:
       force_run:
-        description: 'Force run ignoring schedule'
+        description: "Force run ignoring schedule"
         required: false
-        default: 'true'
+        default: true
         type: boolean
 
 jobs:
   post-blog:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Create .env file
-      env:
-        GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}
-        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        GMAIL_SENDER_NAME: ${{ secrets.GMAIL_SENDER_NAME }}
-        EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
-        EMAIL_BCC: ${{ secrets.EMAIL_BCC }}
-        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
-      run: |
-        echo "GMAIL_EMAIL=${GMAIL_EMAIL}" >> .env
-        echo "GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}" >> .env
-        echo "GMAIL_SENDER_NAME=${GMAIL_SENDER_NAME}" >> .env
-        echo "EMAIL_RECIPIENTS=${EMAIL_RECIPIENTS}" >> .env
-        echo "EMAIL_BCC=${EMAIL_BCC}" >> .env
-        echo "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" >> .env
-        echo "PIXABAY_API_KEY=${PIXABAY_API_KEY}" >> .env
+      - name: Create .env file
+        env:
+          GMAIL_EMAIL: ${{ secrets.BLOGGER_GMAIL_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.BLOGGER_GMAIL_PASSWORD }}
+          GMAIL_SENDER_NAME: ${{ secrets.BLOGGER_SENDER_NAME }}
+          EMAIL_RECIPIENTS: ${{ secrets.BLOGGER_EMAIL_RECIPIENTS }}
+          EMAIL_BCC: ${{ secrets.BLOGGER_EMAIL_BCC }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+        run: |
+          echo "GMAIL_EMAIL=$GMAIL_EMAIL" >> .env
+          echo "GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD" >> .env
+          echo "GMAIL_SENDER_NAME=$GMAIL_SENDER_NAME" >> .env
+          echo "EMAIL_RECIPIENTS=$EMAIL_RECIPIENTS" >> .env
+          echo "EMAIL_BCC=$EMAIL_BCC" >> .env
+          echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> .env
+          echo "PIXABAY_API_KEY=$PIXABAY_API_KEY" >> .env
 
-    - name: Run BloggerBot
-      run: python bot_manager.py forcerun
+      - name: Run BloggerBot
+        id: run_bot
+        run: |
+          python bot_manager.py forcerun
+        continue-on-error: true
 
-    - name: Upload logs as artifacts
-      if: always()  # Upload logs even if the job fails
-      uses: actions/upload-artifact@v3
-      with:
-        name: blogger-bot-logs
-        path: |
-          logs/
-          *.log
+      - name: Upload logs as artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: blogger-bot-logs-${{ github.run_number }}
+          path: |
+            logs/
+            *.log
+
+      - name: Check for failure
+        if: steps.run_bot.outcome == 'failure'
+        run: |
+          echo "::error::BloggerBot failed to run. Check the logs for details."
+          exit 1
+
+      - name: Send notification on failure
+        if: failure()
+        env:
+          GMAIL_EMAIL: ${{ secrets.BLOGGER_GMAIL_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.BLOGGER_GMAIL_PASSWORD }}
+          ADMIN_EMAIL: ${{ secrets.BLOGGER_ADMIN_EMAIL }}
+        run: |
+          python -c "
+          import smtplib
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
+
+          msg = MIMEMultipart()
+          msg['From'] = '$GMAIL_EMAIL'
+          msg['To'] = '$ADMIN_EMAIL'
+          msg['Subject'] = 'BloggerBot GitHub Action Failed'
+
+          body = '''
+          The BloggerBot GitHub Action has failed.
+
+          Workflow: ${{ github.workflow }}
+          Run Number: ${{ github.run_number }}
+          Repository: ${{ github.repository }}
+
+          Please check the GitHub Actions logs for more details:
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          '''
+
+          msg.attach(MIMEText(body, 'plain'))
+
+          with smtplib.SMTP('smtp.gmail.com', 587) as server:
+              server.starttls()
+              server.login('$GMAIL_EMAIL', '$GMAIL_APP_PASSWORD')
+              server.send_message(msg)
+          "
