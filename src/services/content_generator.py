@@ -42,7 +42,7 @@ class ContentGeneratorService:
             r'\b(click here|buy now|limited time|act now|urgent|guaranteed)\b',
             r'\b(100% free|amazing deal|incredible offer|don\'t miss)\b',
             r'[!]{3,}',  # Multiple exclamation marks
-            # r'\b[A-Z]{15,}\b',  # Very long sequences of capital letters (15+ chars) - DISABLED FOR DEBUG
+            r'\b[A-Z]{25,}\b',  # Very long sequences of capital letters (25+ chars) - Only extreme cases
             r'\$\d+.*\$\d+',  # Price ranges that look spammy
         ]
     

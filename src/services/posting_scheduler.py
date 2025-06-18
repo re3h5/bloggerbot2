@@ -20,14 +20,14 @@ class PostingScheduler:
         self.min_delay_between_posts = 3600  # 1 hour minimum
         self.max_delay_between_posts = 86400  # 1 day maximum
         self.preferred_posting_hours = list(range(9, 18))  # 9 AM to 6 PM
-        self.max_posts_per_day = 2
-        self.max_posts_per_week = 7
+        self.max_posts_per_day = 4
+        self.max_posts_per_week = 27
         
         # Natural posting frequency patterns
         self.posting_patterns = {
-            'conservative': {'min_hours': 8, 'max_hours': 24, 'daily_limit': 1},
-            'moderate': {'min_hours': 4, 'max_hours': 12, 'daily_limit': 2},
-            'active': {'min_hours': 2, 'max_hours': 6, 'daily_limit': 3}
+            'conservative': {'min_hours': 6, 'max_hours': 12, 'daily_limit': 3},
+            'moderate': {'min_hours': 4, 'max_hours': 8, 'daily_limit': 4},
+            'active': {'min_hours': 2, 'max_hours': 6, 'daily_limit': 4}
         }
         
         self.current_pattern = 'moderate'  # Default to moderate posting
