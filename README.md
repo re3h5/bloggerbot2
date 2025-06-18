@@ -8,6 +8,7 @@ This automated blogging system combines trending topic discovery, AI-powered con
 
 ## Features
 
+### Core Functionality
 - 🔍 Fetches trending topics using Google Trends API with AI fallback
 - 💰 Includes cryptocurrency trends (BTC, ETH) in topic discovery
 - 📰 Creates engaging, clickable headlines using AI (without quotation marks)
@@ -16,6 +17,21 @@ This automated blogging system combines trending topic discovery, AI-powered con
 - 🔄 Multi-tiered image fetching with Pixabay, Pexels, and placeholder fallbacks
 - 📝 Posts automatically to Blogger with smart label classification
 - 🏷️ Smart label classification system for better content organization
+
+### Human-like Behavior & Anti-Spam
+- 🧠 **Human-like Posting Patterns**: Natural delays and posting schedules (3-4 posts/day, 19-27/week)
+- ⏰ **Smart Scheduling**: Preferred posting hours (9 AM - 6 PM) with realistic inconsistency
+- 🎨 **Content Diversity**: Tracks topics, keywords, and writing styles to prevent repetition
+- 🛡️ **Spam Prevention**: Advanced content filtering and quality checks
+- 📊 **Analytics**: Success rates, diversity scores, and posting statistics
+
+### Automation & Management
+- 🚀 **GitHub Actions**: Automated posting with human-like behavior
+- 🎛️ **Bot Manager CLI**: Easy monitoring, configuration, and manual control
+- 📈 **Multiple Posting Patterns**: Conservative, Moderate, and Active modes
+- 🔄 **Force Override**: Manual posting for testing and immediate needs
+
+### Technical Features
 - 📊 Comprehensive logging with Unicode emoji support (Windows-compatible)
 - ⚠️ Robust error handling with API rate limiting and retries
 - 🔄 Automatic OAuth token refreshing
@@ -210,201 +226,7 @@ bloggerbot2/
         └── token_manager.py  # Token management
 ```
 
-## Recent Improvements
-
-### Thumbnail Support
-- Added proper thumbnail image support for Blogger posts
-- Implemented image embedding in post content for automatic thumbnail extraction
-- Enhanced ImageService to return both local image path and original image URL
-- Improved image handling in BloggerService for better thumbnail display
-
-### Content Cleanup
-- Added headline cleanup to remove quotation marks from AI-generated headlines
-- Implemented content cleanup to remove unwanted HTML artifacts like standalone 'html' words
-- Removed code block markers and excessive whitespace from generated content
-- Improved AI prompts to explicitly prevent inclusion of unwanted formatting
-
-### Trending Topics Enhancement
-- Added cryptocurrency-related categories (cryptocurrency, BTC, ETH) to Google Trends
-- Improved trending topic discovery with more diverse categories
-- Suppressed pandas FutureWarning from pytrends library
-
-### Project Organization
-- Reorganized project structure for better maintainability
-- Moved token generation functionality to src/utils/token_manager.py
-- Created a dedicated src/get_token.py script for token generation
-- Removed duplicate configuration files
-
-### API Rate Limiting
-- Added a RateLimiter utility to track and enforce API call limits
-- Implemented daily and per-minute rate limiting to prevent quota exhaustion
-- Added progressive backoff for HTTP 429 (Too Many Requests) errors
-
-### OAuth Authentication
-- Fixed OAuth scopes to use only the required `https://www.googleapis.com/auth/blogger` scope
-- Added automatic token refreshing when tokens expire
-- Improved token validation with test API calls
-- Enhanced error messages for authentication issues
-
-### Image Service
-- Enhanced multi-tiered image fetching with multiple fallback sources
-- Fixed image path handling and integration with blog posts
-- Added support for landscape-oriented images
-
-### Logging
-- Fixed Unicode emoji support in Windows console logging
-- Added more detailed error messages and suggestions
-- Improved logging around API calls and responses
-
-## Customization
-
-### Modifying Schedule
-
-Edit the schedule in `main.py`:
-
-```python
-schedule.every(6).hours.do(job)  # Change 6 to your preferred interval
-```
-
-### Adjusting Default Topics
-
-Edit the `default_topics` list in the `BloggerBot` class to modify fallback topics when trending topics can't be fetched.
-
-### Label Classification
-
-The label classification system uses keyword matching. You can modify the keywords in the `classify_topic` method to improve categorization for your specific needs.
-
-## Logging
-
-Logs are written to `blogger_bot.log` with UTF-8 encoding. The log includes:
-
-- Timestamp for each operation
-- Success/failure indicators
-- Error messages and stack traces
-- Post URLs after successful publishing
-
-## Troubleshooting
-
-1. **Authentication Failed**: Run `python src/get_token.py` to refresh your OAuth token
-2. **API Rate Limits**: Check the logs and adjust posting frequency if needed
-3. **Content Generation Issues**: Verify OpenRouter API key and connectivity
-4. **Unicode Logging Errors**: The logger now handles emojis properly on Windows
-5. **Unwanted Quotation Marks in Titles**: Fixed with headline cleanup
-6. **HTML Artifacts in Content**: Fixed with content cleanup
-7. **Missing Thumbnails**: Ensure images are properly embedded in the post content
-
-## License
-
-[Your chosen license]
-
-## Contributing
-
-[Your contribution guidelines]
-
-## GitHub Actions Setup
-
-The bot can run automatically using GitHub Actions. To set this up:
-
-1. Fork this repository
-2. Go to your forked repository's Settings
-3. Navigate to "Secrets and variables" → "Actions"
-4. Add the following secrets:
-
-### Required Secrets
-
-1. `GOOGLE_CREDENTIALS`
-
-   - Content: Your entire Google OAuth credentials JSON
-   - How to get:
-     1. Go to Google Cloud Console
-     2. Navigate to your project
-     3. Go to APIs & Services → Credentials
-     4. Download your OAuth 2.0 Client credentials
-     5. Copy the entire JSON content
-   - Example format:
-     ```json
-     {
-       "installed": {
-         "client_id": "your-client-id.apps.googleusercontent.com",
-         "project_id": "your-project-id",
-         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-         "token_uri": "https://oauth2.googleapis.com/token",
-         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-         "client_secret": "your-client-secret",
-         "redirect_uris": ["http://localhost"]
-       }
-     }
-     ```
-
-2. `OPENROUTER_API_KEY`
-
-   - Content: Your OpenRouter API key
-   - How to get:
-     1. Go to [OpenRouter](https://openrouter.ai/api-keys)
-     2. Create or copy your API key
-   - Format: `sk-or-v1-xxxxxxxxxxxx...`
-
-3. `BLOGGER_ID`
-   - Content: Your Blogger blog ID
-   - How to get:
-     1. Go to your Blogger dashboard
-     2. The ID is in your blog's URL or settings
-   - Format: A long number like `1234567890123456789`
-
-4. `BLOGGER_TOKEN`
-   - Content: Your pre-generated Blogger API token
-   - How to get:
-     1. Run the `get_token.py` script locally on your machine
-     2. After authentication completes, find the generated token at `config/token.json`
-     3. Copy the entire contents of this file
-   - Example format:
-     ```json
-     {
-       "token": "ya29.a0AfB_...",
-       "refresh_token": "1//0gGm...",
-       "token_uri": "https://oauth2.googleapis.com/token",
-       "client_id": "your-client-id.apps.googleusercontent.com",
-       "client_secret": "your-client-secret",
-       "scopes": ["https://www.googleapis.com/auth/blogger"],
-       "expiry": "2025-06-17T20:54:02.886Z"
-     }
-     ```
-
-### Workflow Schedule
-
-The bot is configured to run every hour by default. You can modify this in `.github/workflows/bot.yml`:
-
-```yaml
-on:
-  schedule:
-    - cron: "0 */1 * * *" # Runs every hour
-```
-
-Common cron examples:
-
-- Every 2 hours: `0 */2 * * *`
-- Every 6 hours: `0 */6 * * *`
-- Twice daily: `0 */12 * * *`
-- Once daily: `0 0 * * *`
-
-### Manual Trigger
-
-You can also trigger the bot manually:
-
-1. Go to the "Actions" tab
-2. Select "Blogger Auto Bot"
-3. Click "Run workflow"
-
-### Monitoring GitHub Actions
-
-Check the "Actions" tab to:
-
-- View run history
-- Check execution logs
-- Monitor for any errors
-- Verify successful posts
-
-## Recent Updates 
+## Recent Improvements 
 
 ### Version 2.1 - OAuth & Token Management Improvements
 - **🔧 Fixed OAuth Authentication**: Resolved redirect URI mismatch errors and port conflicts
@@ -541,3 +363,114 @@ This repository contains example files for all required credentials. You must cr
 
 3. **For .env**:
    - Create this file with your API keys as shown in the Environment Configuration section
+
+## License
+
+[Your chosen license]
+
+## Contributing
+
+[Your contribution guidelines]
+
+## GitHub Actions Setup
+
+The bot can run automatically using GitHub Actions. To set this up:
+
+1. Fork this repository
+2. Go to your forked repository's Settings
+3. Navigate to "Secrets and variables" → "Actions"
+4. Add the following secrets:
+
+### Required Secrets
+
+1. `GOOGLE_CREDENTIALS`
+
+   - Content: Your entire Google OAuth credentials JSON
+   - How to get:
+     1. Go to Google Cloud Console
+     2. Navigate to your project
+     3. Go to APIs & Services → Credentials
+     4. Download your OAuth 2.0 Client credentials
+     5. Copy the entire JSON content
+   - Example format:
+     ```json
+     {
+       "installed": {
+         "client_id": "your-client-id.apps.googleusercontent.com",
+         "project_id": "your-project-id",
+         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+         "token_uri": "https://oauth2.googleapis.com/token",
+         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+         "client_secret": "your-client-secret",
+         "redirect_uris": ["http://localhost"]
+       }
+     }
+     ```
+
+2. `OPENROUTER_API_KEY`
+
+   - Content: Your OpenRouter API key
+   - How to get:
+     1. Go to [OpenRouter](https://openrouter.ai/api-keys)
+     2. Create or copy your API key
+   - Format: `sk-or-v1-xxxxxxxxxxxx...`
+
+3. `BLOGGER_ID`
+   - Content: Your Blogger blog ID
+   - How to get:
+     1. Go to your Blogger dashboard
+     2. The ID is in your blog's URL or settings
+   - Format: A long number like `1234567890123456789`
+
+4. `BLOGGER_TOKEN`
+   - Content: Your pre-generated Blogger API token
+   - How to get:
+     1. Run the `get_token.py` script locally on your machine
+     2. After authentication completes, find the generated token at `config/token.json`
+     3. Copy the entire contents of this file
+   - Example format:
+     ```json
+     {
+       "token": "ya29.a0AfB_...",
+       "refresh_token": "1//0gGm...",
+       "token_uri": "https://oauth2.googleapis.com/token",
+       "client_id": "your-client-id.apps.googleusercontent.com",
+       "client_secret": "your-client-secret",
+       "scopes": ["https://www.googleapis.com/auth/blogger"],
+       "expiry": "2025-06-17T20:54:02.886Z"
+     }
+     ```
+
+### Workflow Schedule
+
+The bot is configured to run every hour by default. You can modify this in `.github/workflows/bot.yml`:
+
+```yaml
+on:
+  schedule:
+    - cron: "0 */1 * * *" # Runs every hour
+```
+
+Common cron examples:
+
+- Every 2 hours: `0 */2 * * *`
+- Every 6 hours: `0 */6 * * *`
+- Twice daily: `0 */12 * * *`
+- Once daily: `0 0 * * *`
+
+### Manual Trigger
+
+You can also trigger the bot manually:
+
+1. Go to the "Actions" tab
+2. Select "Blogger Auto Bot"
+3. Click "Run workflow"
+
+### Monitoring GitHub Actions
+
+Check the "Actions" tab to:
+
+- View run history
+- Check execution logs
+- Monitor for any errors
+- Verify successful posts
