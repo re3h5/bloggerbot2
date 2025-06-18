@@ -1,9 +1,27 @@
-name: Blogger Auto Bot
+name: Blogger Auto Bot with Human-like Behavior
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Run every hour at minute 0
+    - cron: '0 */2 * * *'  # Run every 2 hours for human-like behavior
   workflow_dispatch:  # Allow manual triggering
+    inputs:
+      force_run:
+        description: 'Force run (ignore posting schedule)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+        - 'false'
+        - 'true'
+      posting_pattern:
+        description: 'Posting pattern to use'
+        required: false
+        default: 'moderate'
+        type: choice
+        options:
+        - 'conservative'
+        - 'moderate'
+        - 'active'
 
 jobs:
   post:
@@ -16,6 +34,14 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
@@ -47,8 +73,62 @@ jobs:
         env:
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY || '' }}
 
-      - name: Run blogger bot
-        run: python main.py
+      - name: Check bot status
+        run: |
+          python bot_manager.py status
+
+      - name: Set posting pattern (if specified)
+        if: ${{ github.event.inputs.posting_pattern != '' }}
+        run: |
+          python bot_manager.py pattern ${{ github.event.inputs.posting_pattern }}
+
+      - name: Run bot with human-like behavior
+        run: |
+          if [ "${{ github.event.inputs.force_run }}" = "true" ]; then
+            echo "🚀 Force running bot (ignoring posting schedule)"
+            python bot_manager.py forcerun
+          else
+            echo "🤖 Running bot with human-like behavior"
+            python bot_manager.py run
+          fi
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           BLOGGER_ID: ${{ secrets.BLOGGER_ID }}
+
+      - name: Show posting statistics
+        if: always()
+        run: |
+          echo "📊 Posting Statistics:"
+          python bot_manager.py status
+          echo ""
+          echo "🎨 Content Diversity Report:"
+          python bot_manager.py diversity
+          echo ""
+          echo "📈 Recent Posting History:"
+          python bot_manager.py history
+
+      - name: Upload logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: bot-logs-${{ github.run_number }}
+          path: |
+            *.log
+            config/posting_schedule.json
+            config/content_diversity.json
+          retention-days: 7
+
+      - name: Commit updated config files
+        if: always()
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add config/posting_schedule.json config/content_diversity.json
+          git diff --staged --quiet || git commit -m "Update posting history and diversity data [skip ci]"
+
+      - name: Push changes
+        if: always()
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
